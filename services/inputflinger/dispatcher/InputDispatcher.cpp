@@ -3651,6 +3651,8 @@ void InputDispatcher::synthesizeCancelationEventsForConnectionLocked(
     target.inputChannel = connection->inputChannel;
     target.flags = InputTarget::FLAG_DISPATCH_AS_IS;
 
+    const bool wasEmpty = connection->outboundQueue.empty();
+
     for (size_t i = 0; i < cancelationEvents.size(); i++) {
         std::unique_ptr<EventEntry> cancelationEventEntry = std::move(cancelationEvents[i]);
         switch (cancelationEventEntry->type) {
@@ -3685,7 +3687,10 @@ void InputDispatcher::synthesizeCancelationEventsForConnectionLocked(
                                    InputTarget::FLAG_DISPATCH_AS_IS);
     }
 
-    startDispatchCycleLocked(currentTime, connection);
+    // If the outbound queue was previously empty, start the dispatch cycle going.
+    if (wasEmpty && !connection->outboundQueue.empty()) {
+        startDispatchCycleLocked(currentTime, connection);
+    }
 }
 
 void InputDispatcher::synthesizePointerDownEventsForConnectionLocked(
@@ -3719,6 +3724,8 @@ void InputDispatcher::synthesizePointerDownEventsForConnectionLocked(
     target.inputChannel = connection->inputChannel;
     target.flags = targetFlags;
 
+    const bool wasEmpty = connection->outboundQueue.empty();
+
     for (std::unique_ptr<EventEntry>& downEventEntry : downEvents) {
         switch (downEventEntry->type) {
             case EventEntry::Type::MOTION: {
@@ -3744,8 +3751,10 @@ void InputDispatcher::synthesizePointerDownEventsForConnectionLocked(
         enqueueDispatchEntryLocked(connection, std::move(downEventEntry), target,
                                    InputTarget::FLAG_DISPATCH_AS_IS);
     }
-
-    startDispatchCycleLocked(currentTime, connection);
+    // If the outbound queue was previously empty, start the dispatch cycle going.
+    if (wasEmpty && !connection->outboundQueue.empty()) {
+        startDispatchCycleLocked(currentTime, connection);
+    }
 }
 
 void InputDispatcher::synthesizeCancelationEventsForWindowLocked(
